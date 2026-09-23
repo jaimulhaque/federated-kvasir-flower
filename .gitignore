@@ -1,0 +1,14 @@
+# dataset (large, not redistributed)
+RAW DATASET/
+clients/
+
+# run outputs
+logs/
+*.pt
+*.pth
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
