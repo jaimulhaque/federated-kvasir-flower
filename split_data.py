@@ -3,8 +3,8 @@ import shutil
 from pathlib import Path
 
 # ====== CONFIG ======
-RAW_DIR = Path(r"G:\TEST FL PAC\RAW DATASET\kvasir-dataset-v2")
-OUT_DIR = Path(r"G:\TEST FL PAC\clients")
+RAW_DIR = Path("/mnt/g/TEST FL PAC/RAW DATASET/kvasir-dataset-v2")
+OUT_DIR = Path("/mnt/g/TEST FL PAC/clients")
 NUM_CLIENTS = 4
 TRAIN_FRAC, VAL_FRAC = 0.70, 0.15   # baki 0.15 = test
 SEED = 42
