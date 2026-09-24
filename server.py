@@ -7,6 +7,11 @@ from flwr.common import parameters_to_ndarrays
 
 from common import build_model, set_parameters
 
+LIVE_CSV = "results_live.csv"      # proti round-er por update hoy
+CKPT = "checkpoint_latest.pt"      # proti SAVE_EVERY round-e update hoy
+SAVE_EVERY = 5
+FIELDS = ["round", "train_loss", "train_acc", "val_acc", "test_acc", "test_loss", "test_ece"]
+
 
 def weighted_avg(metrics):
     """metrics = [(num_examples, {name: value}), ...] -> example-weighted average"""
@@ -16,14 +21,33 @@ def weighted_avg(metrics):
 
 
 class SaveFedAvg(fl.server.strategy.FedAvg):
-    """FedAvg, latest global weights mone rakhe (sheshe save korar jonno)."""
-    latest_parameters = None
+    """FedAvg + majhpothe checkpoint ar live results save."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.latest_parameters = None
+        self.last_fit_metrics = {}
+        self.model = build_model()
 
     def aggregate_fit(self, server_round, results, failures):
         params, metrics = super().aggregate_fit(server_round, results, failures)
         if params is not None:
             self.latest_parameters = params
+            self.last_fit_metrics = metrics or {}
+            if server_round % SAVE_EVERY == 0:
+                set_parameters(self.model, parameters_to_ndarrays(params))
+                torch.save(self.model.state_dict(), CKPT)
         return params, metrics
+
+    def aggregate_evaluate(self, server_round, results, failures):
+        loss, metrics = super().aggregate_evaluate(server_round, results, failures)
+        row = {"round": server_round, **self.last_fit_metrics, **(metrics or {})}
+        with open(LIVE_CSV, "w" if server_round == 1 else "a", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=FIELDS, extrasaction="ignore", restval="")
+            if server_round == 1:
+                w.writeheader()
+            w.writerow(row)
+        return loss, metrics
 
 
 if __name__ == "__main__":
@@ -67,9 +91,8 @@ if __name__ == "__main__":
 
     # ---- final global model ----
     if strategy.latest_parameters is not None:
-        model = build_model()
-        set_parameters(model, parameters_to_ndarrays(strategy.latest_parameters))
-        torch.save(model.state_dict(), "global_model.pt")
+        set_parameters(strategy.model, parameters_to_ndarrays(strategy.latest_parameters))
+        torch.save(strategy.model.state_dict(), "global_model.pt")
         print("Saved global_model.pt")
 
     print("\nFinal round:", {k: round(v[-1][1], 4) for k, v in eval_m.items()})

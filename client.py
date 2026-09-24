@@ -14,7 +14,6 @@ GPU_LOCK_FILE = "/tmp/fl_gpu.lock"
 
 @contextmanager
 def gpu_lock():
-    """Ek PC-te 4 client thakle ek shathe GPU use korbe na, ek ek kore korbe (VRAM bachbe)."""
     with open(GPU_LOCK_FILE, "w") as f:
         fcntl.flock(f, fcntl.LOCK_EX)
         try:
